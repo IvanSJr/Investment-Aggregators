@@ -5,11 +5,13 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -37,16 +39,21 @@ public class User {
     @UpdateTimestamp
     private Instant updatedAt;
 
+    @OneToMany(mappedBy = "user")
+    @SuppressWarnings("JpaAttributeTypeInspection")
+    private List<UserAccount> userAccounts;
+
     public User() {
     }
 
-    public User(UUID id, String username, String email, String password, Instant createdAt, Instant updatedAt) {
+    public User(UUID id, String username, String email, String password, Instant createdAt, Instant updatedAt, List<UserAccount> userAccounts) {
         this.id = id;
         this.username = username;
         this.email = email;
         this.password = password;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
+        this.userAccounts = userAccounts;
     }
 
     public UUID getId() {
@@ -95,5 +102,13 @@ public class User {
 
     public void setUpdatedAt(Instant updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public List<UserAccount> getUserAccounts() {
+        return userAccounts;
+    }
+
+    public void setUserAccounts(List<UserAccount> userAccounts) {
+        this.userAccounts = userAccounts;
     }
 }

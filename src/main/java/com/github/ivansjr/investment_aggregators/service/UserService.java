@@ -1,9 +1,11 @@
 package com.github.ivansjr.investment_aggregators.service;
 
 import com.github.ivansjr.investment_aggregators.entity.User;
+import com.github.ivansjr.investment_aggregators.repository.BillingAddressRepository;
+import com.github.ivansjr.investment_aggregators.repository.UserAccountRepository;
 import com.github.ivansjr.investment_aggregators.repository.UserRepository;
-import com.github.ivansjr.investment_aggregators.service.dto.UserCreateDTO;
-import com.github.ivansjr.investment_aggregators.service.dto.UserUpdateDTO;
+import com.github.ivansjr.investment_aggregators.service.dto.UserCreateRequestDTO;
+import com.github.ivansjr.investment_aggregators.service.dto.UserUpdateRequestDTO;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
@@ -16,18 +18,22 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final ModelMapper modelMapper;
+    private final UserAccountRepository userAccountRepository;
+    private final BillingAddressRepository billingAddressRepository;
 
-    public UserService(UserRepository userRepository, ModelMapper modelMapper) {
+    public UserService(UserRepository userRepository, ModelMapper modelMapper, UserAccountRepository userAccountRepository, BillingAddressRepository billingAddressRepository) {
         this.userRepository = userRepository;
         this.modelMapper = modelMapper;
+        this.userAccountRepository = userAccountRepository;
+        this.billingAddressRepository = billingAddressRepository;
     }
 
     public List<User> getAll() {
         return userRepository.findAll();
     }
 
-    public User create(UserCreateDTO userCreateDTO) {
-        User user = convertToEntity(userCreateDTO);
+    public User create(UserCreateRequestDTO userCreateRequestDTO) {
+        User user = convertToEntity(userCreateRequestDTO);
         return userRepository.save(user);
     }
 
@@ -35,15 +41,15 @@ public class UserService {
         return userRepository.findById(id);
     }
 
-    private User convertToEntity(UserCreateDTO userCreateDTO) {
-        User user = modelMapper.map(userCreateDTO, User.class);
-        user.setUsername(userCreateDTO.username());
-        user.setPassword(userCreateDTO.password());
-        user.setEmail(userCreateDTO.email());
+    private User convertToEntity(UserCreateRequestDTO userCreateRequestDTO) {
+        User user = modelMapper.map(userCreateRequestDTO, User.class);
+        user.setUsername(userCreateRequestDTO.username());
+        user.setPassword(userCreateRequestDTO.password());
+        user.setEmail(userCreateRequestDTO.email());
         return user;
     }
 
-    public User update(UUID id, UserUpdateDTO userCreationDTO) {
+    public User update(UUID id, UserUpdateRequestDTO userCreationDTO) {
         User userFound = getById(id).get();
         if (userFound == null) {
             return null;
