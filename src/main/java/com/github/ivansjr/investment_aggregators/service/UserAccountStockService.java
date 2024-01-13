@@ -1,5 +1,7 @@
 package com.github.ivansjr.investment_aggregators.service;
 
+import com.github.ivansjr.investment_aggregators.client.BrapiClient;
+import com.github.ivansjr.investment_aggregators.client.dto.BrapiResponseDTO;
 import com.github.ivansjr.investment_aggregators.entity.UserAccountStock;
 import com.github.ivansjr.investment_aggregators.entity.UserAccountStockId;
 import com.github.ivansjr.investment_aggregators.entity.Stock;
@@ -7,9 +9,9 @@ import com.github.ivansjr.investment_aggregators.entity.UserAccount;
 import com.github.ivansjr.investment_aggregators.repository.StockRepository;
 import com.github.ivansjr.investment_aggregators.repository.UserAccountStockRepository;
 import com.github.ivansjr.investment_aggregators.repository.UserAccountRepository;
-import com.github.ivansjr.investment_aggregators.service.dto.UserAccountResponseDTO;
 import com.github.ivansjr.investment_aggregators.service.dto.UserAccountStockCreateRequestDTO;
 import com.github.ivansjr.investment_aggregators.service.dto.UserAccountStockResponseDTO;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,11 +27,18 @@ public class UserAccountStockService {
     private final UserAccountStockRepository userAccountStockRepository;
     private final UserAccountRepository userAccountRepository;
     private final StockRepository stockRepository;
+    private final BrapiClient brapiClient;
 
-    public UserAccountStockService(UserAccountStockRepository userAccountStockRepository, UserAccountRepository userAccountRepository, StockRepository stockRepository) {
+    @Value("#{environment.TOKEN_BRAPI}")
+    private String TOKEN;
+
+    public UserAccountStockService(UserAccountStockRepository userAccountStockRepository,
+                                   UserAccountRepository userAccountRepository,
+                                   StockRepository stockRepository, BrapiClient brapiClient) {
         this.userAccountStockRepository = userAccountStockRepository;
         this.userAccountRepository = userAccountRepository;
         this.stockRepository = stockRepository;
+        this.brapiClient = brapiClient;
     }
 
     public void relatedStockWithAccount(UUID accountId, UserAccountStockCreateRequestDTO userAccountStockCreateRequestDTO) {
@@ -48,15 +57,15 @@ public class UserAccountStockService {
 
     public List<UserAccountStockResponseDTO> getAllRelatedStocksByAccount(UUID accountId) {
         UserAccount userAccount = getUserAccount(accountId);
-        List<UserAccountStock> userAccountStocks = userAccount.getStocks();
-        return userAccountStocks.stream().map(
-                accountStocks ->
-                        new UserAccountStockResponseDTO
-                                (
-                                    userAccount.getId(),
-                                    accountStocks.getStock(),
-                                    0.0
-                                )
+
+        return userAccount.getStocks().stream().map(
+            accountStocks ->
+                new UserAccountStockResponseDTO
+                    (
+                        userAccount.getId(),
+                        accountStocks.getStock(),
+                        getTotal(accountStocks.getQuantity(), accountStocks.getStock().getStockId())
+                    )
         ).toList();
     }
 
@@ -64,5 +73,10 @@ public class UserAccountStockService {
         return userAccountRepository.findById(accountId).orElseThrow(
                 () -> new ResponseStatusException(HttpStatus.NOT_FOUND)
         );
+    }
+
+    private Double getTotal(Integer quantity, String stockId) {
+        BrapiResponseDTO brapiResponse = brapiClient.getQuote(TOKEN, stockId);
+        return brapiResponse.results().getFirst().regularMarketPrice() * quantity;
     }
 }
